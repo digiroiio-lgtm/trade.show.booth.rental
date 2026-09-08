@@ -3,6 +3,7 @@ import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import QuoteCta from "@/components/QuoteCta";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
 
 export const metadata: Metadata = {
   title: "Trade Show Booth Builders Directory",
@@ -14,19 +15,24 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BuildersIndexPage() {
-  const builders = await prisma.builder.findMany({
-    where: { verified: true },
-    orderBy: { companyName: "asc" },
-    include: { locations: true },
-  });
+  const builders = hasDatabase
+    ? await prisma!.builder.findMany({
+        where: { verified: true },
+        orderBy: { companyName: "asc" },
+        include: { locations: true },
+      })
+    : [];
 
   const citySlugs = Array.from(
     new Set(builders.flatMap((b) => b.locations.map((l) => l.citySlug)))
   );
-  const cities = await prisma.city.findMany({
-    where: { slug: { in: citySlugs } },
-    select: { slug: true, name: true },
-  });
+  const cities =
+    hasDatabase && citySlugs.length > 0
+      ? await prisma!.city.findMany({
+          where: { slug: { in: citySlugs } },
+          select: { slug: true, name: true },
+        })
+      : [];
   const cityNameBySlug = Object.fromEntries(cities.map((c) => [c.slug, c.name]));
 
   return (

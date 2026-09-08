@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import DatabaseUnavailable from "@/components/admin/DatabaseUnavailable";
 import { LeadStatus } from "@/generated/prisma/enums";
 import {
   addAdminNote,
@@ -17,9 +19,11 @@ export default async function AdminRfqDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!hasDatabase) return <DatabaseUnavailable />;
+
   const { id } = await params;
 
-  const rfq = await prisma.rFQ.findUnique({
+  const rfq = await prisma!.rFQ.findUnique({
     where: { id },
     include: {
       event: true,
@@ -38,11 +42,11 @@ export default async function AdminRfqDetailPage({
   if (!rfq) notFound();
 
   const [notes, verifiedBuilders] = await Promise.all([
-    prisma.adminNote.findMany({
+    prisma!.adminNote.findMany({
       where: { rfqId: id },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.builder.findMany({
+    prisma!.builder.findMany({
       where: { verified: true },
       orderBy: { companyName: "asc" },
       select: { id: true, companyName: true },

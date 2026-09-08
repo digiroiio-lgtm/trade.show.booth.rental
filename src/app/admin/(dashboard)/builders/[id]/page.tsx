@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import DatabaseUnavailable from "@/components/admin/DatabaseUnavailable";
 import BuilderForm from "@/components/admin/BuilderForm";
 import Button from "@/components/ui/Button";
 import { deleteBuilder, updateBuilder } from "../actions";
@@ -11,8 +13,10 @@ export default async function EditBuilderPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!hasDatabase) return <DatabaseUnavailable />;
+
   const { id } = await params;
-  const builder = await prisma.builder.findUnique({
+  const builder = await prisma!.builder.findUnique({
     where: { id },
     include: { locations: true, capabilities: true },
   });

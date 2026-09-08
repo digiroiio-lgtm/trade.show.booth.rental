@@ -3,17 +3,20 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
 import { slugify } from "@/lib/slugify";
 import { ServiceType } from "@/generated/prisma/enums";
 
 const SERVICE_TYPE_VALUES = Object.values(ServiceType);
 
+// Only called from createBuilder/updateBuilder, both of which check
+// hasDatabase before calling this.
 async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   const baseSlug = slugify(base) || "builder";
   let slug = baseSlug;
   let suffix = 1;
   for (;;) {
-    const existing = await prisma.builder.findUnique({ where: { slug } });
+    const existing = await prisma!.builder.findUnique({ where: { slug } });
     if (!existing || existing.id === excludeId) return slug;
     suffix += 1;
     slug = `${baseSlug}-${suffix}`;
@@ -35,13 +38,15 @@ function parseFormBase(formData: FormData) {
 }
 
 export async function createBuilder(formData: FormData) {
+  if (!hasDatabase) return;
+
   const { companyName, website, description, verified, citySlugs, serviceTypes } =
     parseFormBase(formData);
   if (!companyName) return;
 
   const slug = await uniqueSlug(companyName);
 
-  const builder = await prisma.builder.create({
+  const builder = await prisma!.builder.create({
     data: {
       slug,
       companyName,
@@ -58,13 +63,15 @@ export async function createBuilder(formData: FormData) {
 }
 
 export async function updateBuilder(formData: FormData) {
+  if (!hasDatabase) return;
+
   const id = String(formData.get("builderId") ?? "");
   if (!id) return;
   const { companyName, website, description, verified, citySlugs, serviceTypes } =
     parseFormBase(formData);
   if (!companyName) return;
 
-  const current = await prisma.builder.findUnique({ where: { id } });
+  const current = await prisma!.builder.findUnique({ where: { id } });
   if (!current) return;
 
   const slug =
@@ -72,8 +79,8 @@ export async function updateBuilder(formData: FormData) {
       ? current.slug
       : await uniqueSlug(companyName, id);
 
-  await prisma.$transaction([
-    prisma.builder.update({
+  await prisma!.$transaction([
+    prisma!.builder.update({
       where: { id },
       data: {
         slug,
@@ -83,18 +90,18 @@ export async function updateBuilder(formData: FormData) {
         verified,
       },
     }),
-    prisma.builderLocation.deleteMany({ where: { builderId: id } }),
-    prisma.builderCapability.deleteMany({ where: { builderId: id } }),
+    prisma!.builderLocation.deleteMany({ where: { builderId: id } }),
+    prisma!.builderCapability.deleteMany({ where: { builderId: id } }),
     ...(citySlugs.length > 0
       ? [
-          prisma.builderLocation.createMany({
+          prisma!.builderLocation.createMany({
             data: citySlugs.map((citySlug) => ({ builderId: id, citySlug })),
           }),
         ]
       : []),
     ...(serviceTypes.length > 0
       ? [
-          prisma.builderCapability.createMany({
+          prisma!.builderCapability.createMany({
             data: serviceTypes.map((serviceType) => ({ builderId: id, serviceType })),
           }),
         ]
@@ -106,9 +113,11 @@ export async function updateBuilder(formData: FormData) {
 }
 
 export async function deleteBuilder(formData: FormData) {
+  if (!hasDatabase) return;
+
   const id = String(formData.get("builderId") ?? "");
   if (!id) return;
-  await prisma.builder.delete({ where: { id } });
+  await prisma!.builder.delete({ where: { id } });
   revalidatePath("/admin/builders");
   redirect("/admin/builders");
 }

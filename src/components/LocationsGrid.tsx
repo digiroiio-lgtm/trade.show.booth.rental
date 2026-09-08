@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import { CITIES } from "@/lib/constants";
 
 export default async function LocationsGrid() {
-  const cities = await prisma.city.findMany({
-    select: { slug: true, name: true, state: true },
-    orderBy: { name: "asc" },
-  });
+  const cities = hasDatabase
+    ? await prisma!.city.findMany({
+        select: { slug: true, name: true, state: true },
+        orderBy: { name: "asc" },
+      })
+    : CITIES;
 
   return (
     <section className="border-b border-slate-200 bg-slate-50">

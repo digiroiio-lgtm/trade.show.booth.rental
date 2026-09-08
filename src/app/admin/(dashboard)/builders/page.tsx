@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import DatabaseUnavailable from "@/components/admin/DatabaseUnavailable";
 import Button from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminBuildersPage() {
-  const builders = await prisma.builder.findMany({
+  if (!hasDatabase) return <DatabaseUnavailable />;
+
+  const builders = await prisma!.builder.findMany({
     orderBy: { companyName: "asc" },
     include: { locations: true, capabilities: true },
   });

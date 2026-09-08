@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { computeLeadScore } from "@/lib/leadScoring";
 import { matchBuildersForRfq } from "@/lib/matching";
 import { UPLOADS_ENABLED } from "@/lib/uploads";
+import { hasDatabase } from "@/lib/hasDatabase";
 import {
   BoothSizeCode,
   BudgetRange,
@@ -65,6 +66,13 @@ function isEnumValue<T extends Record<string, string>>(
 }
 
 export async function POST(request: NextRequest) {
+  if (!hasDatabase) {
+    return NextResponse.json(
+      { error: "RFQ submission is temporarily unavailable." },
+      { status: 503 }
+    );
+  }
+
   let body: RFQSubmission;
   try {
     body = await request.json();
@@ -124,10 +132,10 @@ export async function POST(request: NextRequest) {
 
   const [boothSizeRow, services] = await Promise.all([
     body.boothSizeCode
-      ? prisma.boothSize.findUnique({ where: { code: body.boothSizeCode as BoothSizeCode } })
+      ? prisma!.boothSize.findUnique({ where: { code: body.boothSizeCode as BoothSizeCode } })
       : Promise.resolve(null),
     serviceTypes.length > 0
-      ? prisma.service.findMany({ where: { type: { in: serviceTypes as ServiceType[] } } })
+      ? prisma!.service.findMany({ where: { type: { in: serviceTypes as ServiceType[] } } })
       : Promise.resolve([]),
   ]);
 
@@ -143,7 +151,7 @@ export async function POST(request: NextRequest) {
     email,
   });
 
-  const rfq = await prisma.$transaction(async (tx) => {
+  const rfq = await prisma!.$transaction(async (tx) => {
     const company = await tx.company.create({
       data: {
         name: companyName,

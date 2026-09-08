@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import DatabaseUnavailable from "@/components/admin/DatabaseUnavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,8 @@ function startOfMonth(date: Date): Date {
 }
 
 export default async function AdminOverviewPage() {
+  if (!hasDatabase) return <DatabaseUnavailable />;
+
   const now = new Date();
   const todayStart = startOfDay(now);
   const monthStart = startOfMonth(now);
@@ -25,17 +29,17 @@ export default async function AdminOverviewPage() {
     cityCounts,
     recentRfqs,
   ] = await Promise.all([
-    prisma.rFQ.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.rFQ.count({ where: { createdAt: { gte: monthStart } } }),
-    prisma.rFQ.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.rFQ.groupBy({
+    prisma!.rFQ.count({ where: { createdAt: { gte: todayStart } } }),
+    prisma!.rFQ.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma!.rFQ.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma!.rFQ.groupBy({
       by: ["citySlug"],
       _count: { _all: true },
       where: { citySlug: { not: null } },
       orderBy: { _count: { citySlug: "desc" } },
       take: 5,
     }),
-    prisma.rFQ.findMany({
+    prisma!.rFQ.findMany({
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { company: true, city: true, event: true, leadScore: true },
@@ -46,7 +50,7 @@ export default async function AdminOverviewPage() {
     statusCounts.map((s) => [s.status, s._count._all])
   );
 
-  const cities = await prisma.city.findMany({
+  const cities = await prisma!.city.findMany({
     where: { slug: { in: cityCounts.map((c) => c.citySlug!).filter(Boolean) } },
     select: { slug: true, name: true },
   });

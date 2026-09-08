@@ -80,9 +80,12 @@ function scoreBuilder(
  * MAX_MATCHES BuilderMatch rows (highest score first), and returns them.
  * Eligibility: verified builders only. If the RFQ names a city, only
  * builders serving that city are considered.
+ *
+ * Callers (POST /api/rfq and the admin "Run Matching" action) both check
+ * hasDatabase before calling this, so it's safe to assume prisma is set.
  */
 export async function matchBuildersForRfq(rfqId: string): Promise<ScoredBuilder[]> {
-  const rfq = await prisma.rFQ.findUnique({
+  const rfq = await prisma!.rFQ.findUnique({
     where: { id: rfqId },
     include: { services: { include: { service: true } } },
   });
@@ -90,7 +93,7 @@ export async function matchBuildersForRfq(rfqId: string): Promise<ScoredBuilder[
 
   const serviceTypes = rfq.services.map((s) => s.service.type);
 
-  const candidates = await prisma.builder.findMany({
+  const candidates = await prisma!.builder.findMany({
     where: {
       verified: true,
       ...(rfq.citySlug ? { locations: { some: { citySlug: rfq.citySlug } } } : {}),
@@ -111,10 +114,10 @@ export async function matchBuildersForRfq(rfqId: string): Promise<ScoredBuilder[
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_MATCHES);
 
-  await prisma.$transaction([
-    prisma.builderMatch.deleteMany({ where: { rfqId } }),
+  await prisma!.$transaction([
+    prisma!.builderMatch.deleteMany({ where: { rfqId } }),
     ...scored.map((s) =>
-      prisma.builderMatch.create({
+      prisma!.builderMatch.create({
         data: { rfqId, builderId: s.builderId, matchScore: s.score },
       })
     ),

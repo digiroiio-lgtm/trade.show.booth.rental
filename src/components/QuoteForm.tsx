@@ -204,7 +204,12 @@ export default function QuoteForm({
         }),
       });
       if (!res.ok) {
-        throw new Error("Submission failed");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : "Something went wrong submitting your request. Please try again."
+        );
       }
       trackEvent("rfq_form_completed", {
         citySlug: form.citySlug,
@@ -212,9 +217,11 @@ export default function QuoteForm({
         budgetRange: form.budgetRange,
       });
       setSubmitted(true);
-    } catch {
+    } catch (err) {
       setError(
-        "Something went wrong submitting your request. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong submitting your request. Please try again."
       );
     } finally {
       setSubmitting(false);

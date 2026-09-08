@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import QuoteCta from "@/components/QuoteCta";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
 
 export const dynamic = "force-dynamic";
 
 async function getBuilder(slug: string) {
-  const builder = await prisma.builder.findUnique({
+  if (!hasDatabase) return null;
+  const builder = await prisma!.builder.findUnique({
     where: { slug },
     include: { locations: true, capabilities: true },
   });
@@ -42,11 +44,11 @@ export default async function BuilderProfilePage({
   const builder = await getBuilder(slug);
   if (!builder) notFound();
 
-  const cities = await prisma.city.findMany({
+  const cities = await prisma!.city.findMany({
     where: { slug: { in: builder.locations.map((l) => l.citySlug) } },
     select: { slug: true, name: true, state: true },
   });
-  const services = await prisma.service.findMany({
+  const services = await prisma!.service.findMany({
     where: { type: { in: builder.capabilities.map((c) => c.serviceType) } },
     select: { name: true, type: true },
   });

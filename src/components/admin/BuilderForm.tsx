@@ -16,10 +16,12 @@ interface BuilderFormProps {
   };
 }
 
+// Callers (admin/builders/new and admin/builders/[id]) both check
+// hasDatabase before rendering this component.
 export default async function BuilderForm({ action, submitLabel, builder }: BuilderFormProps) {
   const [cities, services] = await Promise.all([
-    prisma.city.findMany({ select: { slug: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.service.findMany({ select: { type: true, name: true }, orderBy: { name: "asc" } }),
+    prisma!.city.findMany({ select: { slug: true, name: true }, orderBy: { name: "asc" } }),
+    prisma!.service.findMany({ select: { type: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const selectedCities = new Set(builder?.locations.map((l) => l.citySlug) ?? []);

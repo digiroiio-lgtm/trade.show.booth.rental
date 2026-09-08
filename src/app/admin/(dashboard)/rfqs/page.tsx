@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import DatabaseUnavailable from "@/components/admin/DatabaseUnavailable";
 import { LeadStatus } from "@/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -11,12 +13,14 @@ export default async function AdminRfqsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  if (!hasDatabase) return <DatabaseUnavailable />;
+
   const { status } = await searchParams;
   const activeStatus = status && Object.values(LeadStatus).includes(status as LeadStatus)
     ? (status as LeadStatus)
     : null;
 
-  const rfqs = await prisma.rFQ.findMany({
+  const rfqs = await prisma!.rFQ.findMany({
     where: activeStatus ? { status: activeStatus } : undefined,
     orderBy: { createdAt: "desc" },
     take: 100,

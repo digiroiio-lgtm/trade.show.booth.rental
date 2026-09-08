@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { hasDatabase } from "@/lib/hasDatabase";
+import { SERVICES } from "@/lib/constants";
 
 export default async function ServicesGrid() {
-  const services = await prisma.service.findMany({
-    select: { slug: true, name: true, description: true },
-    orderBy: { name: "asc" },
-  });
+  const services = hasDatabase
+    ? await prisma!.service.findMany({
+        select: { slug: true, name: true, description: true },
+        orderBy: { name: "asc" },
+      })
+    : SERVICES;
 
   return (
     <section className="border-b border-slate-200 bg-white">
