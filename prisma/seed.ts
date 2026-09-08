@@ -124,6 +124,84 @@ async function main() {
   console.log(
     `Seeded: ${cityCount} cities, ${venueCount} venues, ${eventCount} events, ${serviceCount} services, ${boothSizeCount} booth sizes.`
   );
+
+  await seedSampleBuilders();
+}
+
+// Fictional builders for local dev/testing of the admin panel and matching
+// engine only. Names are clearly marked as sample data. Gated out of any
+// seed run against a production database so no placeholder companies are
+// ever shown to real exhibitors.
+async function seedSampleBuilders() {
+  if (process.env.NODE_ENV === "production") return;
+
+  const samples: {
+    slug: string;
+    companyName: string;
+    description: string;
+    minProjectBudget: number;
+    citySlugs: string[];
+    serviceTypes: ServiceType[];
+  }[] = [
+    {
+      slug: "sample-vegas-exhibits-demo",
+      companyName: "Sample Vegas Exhibits (Demo)",
+      description:
+        "Sample dev/demo builder for local testing only. Full-service rental and custom design serving Las Vegas.",
+      minProjectBudget: 15_000,
+      citySlugs: ["las-vegas"],
+      serviceTypes: ["BOOTH_RENTAL", "CUSTOM_DESIGN", "INSTALLATION_DISMANTLING"],
+    },
+    {
+      slug: "sample-premier-island-builds-demo",
+      companyName: "Sample Premier Island Builds (Demo)",
+      description:
+        "Sample dev/demo builder for local testing only. Large-format island exhibits for major Las Vegas trade shows.",
+      minProjectBudget: 100_000,
+      citySlugs: ["las-vegas"],
+      serviceTypes: ["BOOTH_RENTAL", "ISLAND_BOOTHS", "AV_LED"],
+    },
+    {
+      slug: "sample-orlando-booth-co-demo",
+      companyName: "Sample Orlando Booth Co (Demo)",
+      description:
+        "Sample dev/demo builder for local testing only. Booth rental and graphics for Orlando-area exhibitors.",
+      minProjectBudget: 5_000,
+      citySlugs: ["orlando"],
+      serviceTypes: ["BOOTH_RENTAL", "GRAPHICS_SIGNAGE", "FURNITURE"],
+    },
+  ];
+
+  for (const sample of samples) {
+    const builder = await prisma.builder.upsert({
+      where: { slug: sample.slug },
+      update: {
+        companyName: sample.companyName,
+        description: sample.description,
+        minProjectBudget: sample.minProjectBudget,
+        verified: true,
+      },
+      create: {
+        slug: sample.slug,
+        companyName: sample.companyName,
+        description: sample.description,
+        minProjectBudget: sample.minProjectBudget,
+        verified: true,
+      },
+    });
+
+    await prisma.builderLocation.deleteMany({ where: { builderId: builder.id } });
+    await prisma.builderLocation.createMany({
+      data: sample.citySlugs.map((citySlug) => ({ builderId: builder.id, citySlug })),
+    });
+
+    await prisma.builderCapability.deleteMany({ where: { builderId: builder.id } });
+    await prisma.builderCapability.createMany({
+      data: sample.serviceTypes.map((serviceType) => ({ builderId: builder.id, serviceType })),
+    });
+  }
+
+  console.log(`Seeded ${samples.length} sample builders (dev/demo only).`);
 }
 
 main()
