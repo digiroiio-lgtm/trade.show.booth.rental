@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { UPLOADS_ENABLED } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,13 @@ const TMP_UPLOAD_DIR = path.join(DATA_DIR, "uploads", "tmp");
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
+  if (!UPLOADS_ENABLED) {
+    return NextResponse.json(
+      { error: "File uploads are temporarily unavailable. You can share files with us after we're in touch." },
+      { status: 503 }
+    );
+  }
+
   const formData = await request.formData();
   const file = formData.get("file");
   const category = formData.get("category");

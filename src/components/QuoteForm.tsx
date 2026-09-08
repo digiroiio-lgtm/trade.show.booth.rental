@@ -49,7 +49,13 @@ const STEP_TITLES = [
   "Contact Details",
 ];
 
-export default function QuoteForm({ referenceData }: { referenceData: ReferenceData }) {
+export default function QuoteForm({
+  referenceData,
+  uploadsEnabled = true,
+}: {
+  referenceData: ReferenceData;
+  uploadsEnabled?: boolean;
+}) {
   const searchParams = useSearchParams();
 
   const [step, setStep] = useState(1);
@@ -394,38 +400,46 @@ export default function QuoteForm({ referenceData }: { referenceData: ReferenceD
                 placeholder="Design goals, brand requirements, past booths, anything relevant."
               />
             </Field>
-            {FILE_CATEGORIES.map((category) => (
-              <div key={category.value}>
-                <Field label={category.label} optional>
-                  <input
-                    type="file"
-                    multiple
-                    className="input"
-                    disabled={uploading}
-                    onChange={(e) => handleFileUpload(category.value, e.target.files)}
-                  />
-                </Field>
-                <ul className="mt-2 space-y-1">
-                  {form.files
-                    .filter((f) => f.category === category.value)
-                    .map((f) => (
-                      <li
-                        key={f.tempPath}
-                        className="flex items-center justify-between text-xs text-slate-600"
-                      >
-                        <span>{f.fileName}</span>
-                        <button
-                          type="button"
-                          className="text-slate-400 hover:text-slate-700"
-                          onClick={() => removeFile(f.tempPath)}
+            {uploadsEnabled ? (
+              FILE_CATEGORIES.map((category) => (
+                <div key={category.value}>
+                  <Field label={category.label} optional>
+                    <input
+                      type="file"
+                      multiple
+                      className="input"
+                      disabled={uploading}
+                      onChange={(e) => handleFileUpload(category.value, e.target.files)}
+                    />
+                  </Field>
+                  <ul className="mt-2 space-y-1">
+                    {form.files
+                      .filter((f) => f.category === category.value)
+                      .map((f) => (
+                        <li
+                          key={f.tempPath}
+                          className="flex items-center justify-between text-xs text-slate-600"
                         >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))}
+                          <span>{f.fileName}</span>
+                          <button
+                            type="button"
+                            className="text-slate-400 hover:text-slate-700"
+                            onClick={() => removeFile(f.tempPath)}
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">
+                File uploads (floor plans, inspiration images, brand guidelines) are
+                temporarily unavailable — you can share them with us after we&apos;re in
+                touch.
+              </p>
+            )}
           </fieldset>
         )}
 

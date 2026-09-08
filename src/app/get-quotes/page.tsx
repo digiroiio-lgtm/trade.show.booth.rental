@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import QuoteForm from "@/components/QuoteForm";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { prisma } from "@/lib/prisma";
+import { UPLOADS_ENABLED } from "@/lib/uploads";
 
 export const metadata: Metadata = {
   title: "Get 3 Trade Show Booth Quotes",
@@ -46,7 +47,10 @@ export default async function GetQuotesPage() {
       </div>
       <div className="mt-10">
         <Suspense fallback={null}>
-          <QuoteForm referenceData={{ cities, events, services, boothSizes }} />
+          <QuoteForm
+            referenceData={{ cities, events, services, boothSizes }}
+            uploadsEnabled={UPLOADS_ENABLED}
+          />
         </Suspense>
       </div>
     </div>

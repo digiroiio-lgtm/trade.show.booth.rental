@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeLeadScore } from "@/lib/leadScoring";
 import { matchBuildersForRfq } from "@/lib/matching";
+import { UPLOADS_ENABLED } from "@/lib/uploads";
 import {
   BoothSizeCode,
   BudgetRange,
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const files = body.files ?? [];
+    const files = UPLOADS_ENABLED ? (body.files ?? []) : [];
     if (files.length > 0) {
       const uploadDir = path.join(DATA_DIR, "uploads", created.id);
       await fs.mkdir(uploadDir, { recursive: true });
