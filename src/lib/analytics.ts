@@ -1,9 +1,9 @@
 "use client";
 
 export type AnalyticsEvent =
-  | "quote_form_started"
-  | "quote_form_step"
-  | "quote_form_completed"
+  | "hero_rfq_started"
+  | "rfq_step_completed"
+  | "rfq_form_completed"
   | "phone_clicked"
   | "email_clicked"
   | "cta_clicked";

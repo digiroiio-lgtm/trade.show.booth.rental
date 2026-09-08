@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   BOOTH_SIZES,
+  CITIES,
   EXHIBIT_CITY_OPTIONS,
   HERO_HEADLINE,
   HERO_SUBHEADLINE,
@@ -26,9 +27,10 @@ export default function Hero() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    trackEvent("quote_form_started", { source: "hero", city, size });
+    trackEvent("hero_rfq_started", { source: "hero", city, size });
+    const citySlug = CITIES.find((c) => c.name === city)?.slug;
     const params = new URLSearchParams();
-    if (city) params.set("city", city);
+    if (citySlug) params.set("citySlug", citySlug);
     if (size) params.set("size", size);
     params.set("utm_source", "homepage");
     router.push(`/get-quotes?${params.toString()}`);
