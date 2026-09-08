@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "@/generated/prisma/enums";
-import { addAdminNote, updateRfqStatus } from "../actions";
+import {
+  addAdminNote,
+  assignBuilder,
+  createOpportunity,
+  rerunMatching,
+  updateRfqStatus,
+} from "../actions";
 import Button from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
@@ -25,15 +31,26 @@ export default async function AdminRfqDetailPage({
       attribution: true,
       leadScore: true,
       builderMatches: { include: { builder: true }, orderBy: { matchScore: "desc" } },
+      opportunities: { include: { builder: true } },
     },
   });
 
   if (!rfq) notFound();
 
-  const notes = await prisma.adminNote.findMany({
-    where: { rfqId: id },
-    orderBy: { createdAt: "desc" },
-  });
+  const [notes, verifiedBuilders] = await Promise.all([
+    prisma.adminNote.findMany({
+      where: { rfqId: id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.builder.findMany({
+      where: { verified: true },
+      orderBy: { companyName: "asc" },
+      select: { id: true, companyName: true },
+    }),
+  ]);
+  const matchedBuilderIds = new Set(rfq.builderMatches.map((m) => m.builderId));
+  const opportunityBuilderIds = new Set(rfq.opportunities.map((o) => o.builderId));
+  const unmatchedBuilders = verifiedBuilders.filter((b) => !matchedBuilderIds.has(b.id));
 
   return (
     <div className="space-y-8">
@@ -167,20 +184,81 @@ export default async function AdminRfqDetailPage({
       )}
 
       <div className="card">
-        <h2 className="text-sm font-semibold text-slate-900">Matched Builders</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900">Matched Builders</h2>
+          <form action={rerunMatching}>
+            <input type="hidden" name="rfqId" value={rfq.id} />
+            <Button type="submit" variant="secondary">
+              Run Matching
+            </Button>
+          </form>
+        </div>
+
         {rfq.builderMatches.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">
-            No builders matched yet.
+            No builders matched yet. Matching runs automatically on submission
+            for verified builders serving the RFQ&apos;s city — click &quot;Run
+            Matching&quot; to retry, or assign one manually below.
           </p>
         ) : (
           <ul className="mt-3 divide-y divide-slate-100">
             {rfq.builderMatches.map((match) => (
-              <li key={match.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="font-medium text-slate-900">{match.builder.companyName}</span>
-                <span className="text-slate-500">Match score: {match.matchScore ?? "—"}</span>
+              <li key={match.id} className="flex items-center justify-between py-3 text-sm">
+                <div>
+                  <span className="font-medium text-slate-900">{match.builder.companyName}</span>
+                  <span className="ml-2 text-slate-500">Score: {match.matchScore ?? "—"}</span>
+                </div>
+                {opportunityBuilderIds.has(match.builderId) ? (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                    Opportunity created
+                  </span>
+                ) : (
+                  <form action={createOpportunity}>
+                    <input type="hidden" name="rfqId" value={rfq.id} />
+                    <input type="hidden" name="builderId" value={match.builderId} />
+                    <Button type="submit" variant="secondary">
+                      Create Opportunity
+                    </Button>
+                  </form>
+                )}
               </li>
             ))}
           </ul>
+        )}
+
+        {unmatchedBuilders.length > 0 && (
+          <form action={assignBuilder} className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
+            <input type="hidden" name="rfqId" value={rfq.id} />
+            <select name="builderId" className="input w-auto" defaultValue="">
+              <option value="" disabled>
+                Assign a builder manually…
+              </option>
+              {unmatchedBuilders.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.companyName}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" variant="secondary">
+              Assign
+            </Button>
+          </form>
+        )}
+
+        {rfq.opportunities.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Opportunities
+            </h3>
+            <ul className="mt-2 space-y-1 text-sm">
+              {rfq.opportunities.map((opp) => (
+                <li key={opp.id} className="flex justify-between text-slate-700">
+                  <span>{opp.builder.companyName}</span>
+                  <span className="text-slate-500">{opp.stage}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
 

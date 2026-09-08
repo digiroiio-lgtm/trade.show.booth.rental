@@ -306,6 +306,7 @@ model Builder {
   website     String?
   description String?
   verified    Boolean  @default(false)
+  minProjectBudget Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

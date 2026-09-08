@@ -3,6 +3,7 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeLeadScore } from "@/lib/leadScoring";
+import { matchBuildersForRfq } from "@/lib/matching";
 import {
   BoothSizeCode,
   BudgetRange,
@@ -221,6 +222,14 @@ export async function POST(request: NextRequest) {
 
     return created;
   });
+
+  try {
+    await matchBuildersForRfq(rfq.id);
+  } catch (err) {
+    // Matching is best-effort at submission time; an admin can re-run it
+    // manually from the RFQ detail page if this fails.
+    console.error("Auto-matching failed for RFQ", rfq.id, err);
+  }
 
   return NextResponse.json({ id: rfq.id }, { status: 201 });
 }
