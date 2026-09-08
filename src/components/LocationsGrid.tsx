@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { CITIES } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
 
-export default function LocationsGrid() {
+export default async function LocationsGrid() {
+  const cities = await prisma.city.findMany({
+    select: { slug: true, name: true, state: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <section className="border-b border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -13,7 +18,7 @@ export default function LocationsGrid() {
           destinations.
         </p>
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {CITIES.map((city) => (
+          {cities.map((city) => (
             <Link
               key={city.slug}
               href={`/trade-show-booth-builders/${city.slug}`}
